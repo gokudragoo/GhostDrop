@@ -1,0 +1,32 @@
+{
+  "name": "ghostdrop-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/copy-zk-assets.mjs",
+    "dev": "node ../node_modules/vite/bin/vite.js --host 127.0.0.1",
+    "prebuild": "node scripts/copy-zk-assets.mjs",
+    "build": "tsc -p tsconfig.json && node ../node_modules/vite/bin/vite.js build --mode preprod",
+    "preview": "node ../node_modules/vite/bin/vite.js preview --host 127.0.0.1",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/newsreader": "^5.2.8",
+    "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
+    "@phosphor-icons/react": "^2.1.10",
+    "assert": "^2.1.0",
+    "ghostdrop-api": "*",
+    "ghostdrop-contract": "*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^8.0.14",
+    "vite-plugin-wasm": "^3.6.0"
+  }
+}

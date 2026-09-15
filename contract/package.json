@@ -1,0 +1,28 @@
+{
+  "name": "ghostdrop-contract",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./managed/ghostdrop/contract": {
+      "types": "./dist/managed/ghostdrop/contract/index.d.ts",
+      "import": "./dist/managed/ghostdrop/contract/index.js"
+    }
+  },
+  "scripts": {
+    "compact": "node scripts/compile-compact.mjs",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-contract.mjs",
+    "test": "vitest run",
+    "test:compile": "npm run compact && npm test",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.16.0"
+  }
+}

@@ -1,0 +1,633 @@
+pragma language_version >= 0.22 && <= 0.23;
+
+import CompactStandardLibrary;
+import "schnorr" prefix Schnorr_;
+
+export { Schnorr_SchnorrSignature };
+
+export enum CaseStatus {
+  Submitted,
+  Acknowledged,
+  UnderInvestigation,
+  ActionRequired,
+  Resolved,
+  Closed
+}
+
+export enum OrganizationAction {
+  UpdateMetadata,
+  SetActive,
+  AddInvestigator,
+  RemoveInvestigator,
+  AdvanceReportingEpoch,
+  AdvanceCredentialEpoch
+}
+
+export enum ReporterContentKind {
+  Message,
+  Evidence
+}
+
+export enum InvestigatorAction {
+  Message,
+  AdvanceStatus
+}
+
+export enum DisclosureKind {
+  Department,
+  Tenure
+}
+
+export struct MembershipCredential {
+  organizationId: Bytes<32>;
+  subject: Bytes<32>;
+  department: Uint<8>;
+  employmentStartedAt: Uint<64>;
+  validityEpoch: Uint<16>;
+}
+
+export struct Organization {
+  name: Opaque<"string">;
+  metadataRef: Opaque<"string">;
+  encryptionKeyHash: Bytes<32>;
+  adminKey: Bytes<32>;
+  issuerKey: JubjubPoint;
+  active: Boolean;
+}
+
+export struct CaseRecord {
+  organizationId: Bytes<32>;
+  reporterKey: Bytes<32>;
+  nullifier: Bytes<32>;
+  payloadRef: Opaque<"string">;
+  reportCommitment: Bytes<32>;
+  evidenceCommitment: Bytes<32>;
+  category: Uint<8>;
+  urgency: Uint<8>;
+  status: CaseStatus;
+  submittedAt: Uint<64>;
+  departmentProof: Uint<8>;
+  hasDepartmentProof: Boolean;
+  tenureProof: Uint<8>;
+}
+
+export struct MessageRecord {
+  caseId: Uint<64>;
+  payloadRef: Opaque<"string">;
+  payloadCommitment: Bytes<32>;
+  authorRole: Uint<8>;
+  sentAt: Uint<64>;
+}
+
+export struct EvidenceRecord {
+  caseId: Uint<64>;
+  payloadRef: Opaque<"string">;
+  commitment: Bytes<32>;
+  authorRole: Uint<8>;
+  submittedAt: Uint<64>;
+}
+
+export struct StatusEvent {
+  caseId: Uint<64>;
+  fromStatus: CaseStatus;
+  toStatus: CaseStatus;
+  changedAt: Uint<64>;
+}
+
+export ledger organizations: Map<Bytes<32>, Organization>;
+export ledger reportEpochs: Map<Bytes<32>, Uint<16>>;
+export ledger credentialEpochs: Map<Bytes<32>, Uint<16>>;
+export ledger investigatorPermissions: Map<Bytes<32>, Map<Bytes<32>, Uint<8>>>;
+export ledger usedNullifiers: Set<Bytes<32>>;
+export ledger cases: Map<Uint<64>, CaseRecord>;
+export ledger messages: Map<Uint<64>, MessageRecord>;
+export ledger evidence: Map<Uint<64>, EvidenceRecord>;
+export ledger statusEvents: Map<Uint<64>, StatusEvent>;
+export ledger caseSequence: Counter;
+export ledger messageSequence: Counter;
+export ledger evidenceSequence: Counter;
+export ledger statusSequence: Counter;
+
+witness getMembershipWitness(): [MembershipCredential, Schnorr_SchnorrSignature];
+witness getUserSecret(): Bytes<32>;
+
+constructor() {}
+
+export pure circuit deriveCredentialSubject(secret: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([
+    pad(32, "ghostdrop:subject:v1"),
+    secret
+  ]);
+}
+
+export pure circuit deriveAdminKey(secret: Bytes<32>, organizationId: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([
+    pad(32, "ghostdrop:admin:v1"),
+    organizationId,
+    secret
+  ]);
+}
+
+export pure circuit deriveInvestigatorKey(secret: Bytes<32>, organizationId: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([
+    pad(32, "ghostdrop:investigator:v1"),
+    organizationId,
+    secret
+  ]);
+}
+
+export pure circuit deriveReporterKey(
+  secret: Bytes<32>,
+  organizationId: Bytes<32>,
+  caseId: Uint<64>
+): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([
+    pad(32, "ghostdrop:reporter:v1"),
+    organizationId,
+    persistentHash<Uint<64>>(caseId),
+    secret
+  ]);
+}
+
+export pure circuit deriveReportNullifier(
+  secret: Bytes<32>,
+  organizationId: Bytes<32>,
+  epoch: Uint<16>
+): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([
+    pad(32, "ghostdrop:nullifier:v1"),
+    organizationId,
+    persistentHash<Uint<16>>(epoch),
+    secret
+  ]);
+}
+
+export pure circuit credentialMessage(
+  organizationId: Bytes<32>,
+  subject: Bytes<32>,
+  department: Uint<8>,
+  employmentStartedAt: Uint<64>,
+  validityEpoch: Uint<16>
+): Vector<5, Field> {
+  return [
+    transientHash<Bytes<32>>(organizationId),
+    transientHash<Bytes<32>>(subject),
+    department as Field,
+    transientHash<Uint<64>>(employmentStartedAt),
+    validityEpoch as Field
+  ];
+}
+
+export pure circuit schnorrChallenge(
+  ann_x: Field,
+  ann_y: Field,
+  pk_x: Field,
+  pk_y: Field,
+  msg: Vector<5, Field>
+): Field {
+  return Schnorr_schnorrChallenge(ann_x, ann_y, pk_x, pk_y, msg);
+}
+
+circuit requireCurrentTimestamp(timestamp: Uint<64>): [] {
+  const publicTimestamp = disclose(timestamp);
+  assert(blockTimeGte(publicTimestamp), "Timestamp is in the future");
+  assert(blockTimeLt((publicTimestamp + 600) as Uint<64>), "Timestamp is older than ten minutes");
+}
+
+circuit requireAdmin(organizationId: Bytes<32>): Organization {
+  const disclosedOrganizationId = disclose(organizationId);
+  assert(organizations.member(disclosedOrganizationId), "Organization not found");
+  const organization = organizations.lookup(disclosedOrganizationId);
+  assert(
+    organization.adminKey == deriveAdminKey(getUserSecret(), organizationId),
+    "Only the organization admin may perform this action"
+  );
+  return organization;
+}
+
+circuit requireInvestigator(organizationId: Bytes<32>, category: Uint<8>): [] {
+  const disclosedOrganizationId = disclose(organizationId);
+  assert(investigatorPermissions.member(disclosedOrganizationId), "No investigators registered");
+  const key = deriveInvestigatorKey(getUserSecret(), organizationId);
+  const disclosedKey = disclose(key);
+  assert(
+    investigatorPermissions.lookup(disclosedOrganizationId).member(disclosedKey),
+    "Investigator is not authorized"
+  );
+  const scope = investigatorPermissions.lookup(disclosedOrganizationId).lookup(disclosedKey);
+  assert(scope == 0 || scope == category, "Investigator is not authorized for this category");
+}
+
+circuit verifyMembership(organizationId: Bytes<32>): MembershipCredential {
+  const disclosedOrganizationId = disclose(organizationId);
+  assert(organizations.member(disclosedOrganizationId), "Organization not found");
+  const organization = organizations.lookup(disclosedOrganizationId);
+  assert(organization.active, "Organization is not accepting reports");
+  const [credential, signature] = getMembershipWitness();
+  assert(credential.organizationId == organizationId, "Credential belongs to another organization");
+  assert(
+    credential.subject == deriveCredentialSubject(getUserSecret()),
+    "Credential does not belong to this reporter"
+  );
+  assert(
+    credential.validityEpoch == reportCredentialEpoch(disclosedOrganizationId),
+    "Credential is no longer valid"
+  );
+  Schnorr_schnorrVerify<5>(
+    credentialMessage(
+      credential.organizationId,
+      credential.subject,
+      credential.department,
+      credential.employmentStartedAt,
+      credential.validityEpoch
+    ),
+    signature,
+    organization.issuerKey
+  );
+  return credential;
+}
+
+circuit reportCredentialEpoch(organizationId: Bytes<32>): Uint<16> {
+  assert(credentialEpochs.member(organizationId), "Credential epoch not found");
+  return credentialEpochs.lookup(organizationId);
+}
+
+export circuit registerOrganization(
+  organizationId: Bytes<32>,
+  name: Opaque<"string">,
+  metadataRef: Opaque<"string">,
+  encryptionKeyHash: Bytes<32>,
+  issuerKey: JubjubPoint
+): [] {
+  const disclosedOrganizationId = disclose(organizationId);
+  assert(!organizations.member(disclosedOrganizationId), "Organization already registered");
+  const adminKey = deriveAdminKey(getUserSecret(), organizationId);
+  const investigatorKey = deriveInvestigatorKey(getUserSecret(), organizationId);
+  organizations.insert(
+    disclosedOrganizationId,
+    disclose(Organization {
+      name: name,
+      metadataRef: metadataRef,
+      encryptionKeyHash: encryptionKeyHash,
+      adminKey: adminKey,
+      issuerKey: issuerKey,
+      active: true
+    })
+  );
+  reportEpochs.insert(disclosedOrganizationId, 1);
+  credentialEpochs.insert(disclosedOrganizationId, 1);
+  investigatorPermissions.insert(disclosedOrganizationId, default<Map<Bytes<32>, Uint<8>>>);
+  investigatorPermissions.lookup(disclosedOrganizationId).insert(disclose(investigatorKey), 0);
+}
+
+circuit updateOrganizationMetadata(
+  organizationId: Bytes<32>,
+  metadataRef: Opaque<"string">,
+  encryptionKeyHash: Bytes<32>
+): [] {
+  const organization = requireAdmin(organizationId);
+  organizations.insert(
+    disclose(organizationId),
+    disclose(Organization {
+      name: organization.name,
+      metadataRef: metadataRef,
+      encryptionKeyHash: encryptionKeyHash,
+      adminKey: organization.adminKey,
+      issuerKey: organization.issuerKey,
+      active: organization.active
+    })
+  );
+}
+
+circuit setOrganizationActive(organizationId: Bytes<32>, active: Boolean): [] {
+  const organization = requireAdmin(organizationId);
+  organizations.insert(
+    disclose(organizationId),
+    disclose(Organization {
+      name: organization.name,
+      metadataRef: organization.metadataRef,
+      encryptionKeyHash: organization.encryptionKeyHash,
+      adminKey: organization.adminKey,
+      issuerKey: organization.issuerKey,
+      active: active
+    })
+  );
+}
+
+circuit addInvestigator(
+  organizationId: Bytes<32>,
+  investigatorKey: Bytes<32>,
+  categoryScope: Uint<8>
+): [] {
+  requireAdmin(organizationId);
+  investigatorPermissions.lookup(disclose(organizationId)).insert(
+    disclose(investigatorKey),
+    disclose(categoryScope)
+  );
+}
+
+circuit removeInvestigator(organizationId: Bytes<32>, investigatorKey: Bytes<32>): [] {
+  requireAdmin(organizationId);
+  investigatorPermissions.lookup(disclose(organizationId)).remove(disclose(investigatorKey));
+}
+
+circuit advanceReportingEpoch(organizationId: Bytes<32>): [] {
+  requireAdmin(organizationId);
+  const disclosedOrganizationId = disclose(organizationId);
+  const nextEpoch = (reportEpochs.lookup(disclosedOrganizationId) + 1) as Uint<16>;
+  reportEpochs.insert(disclosedOrganizationId, nextEpoch);
+}
+
+circuit advanceCredentialEpoch(organizationId: Bytes<32>): [] {
+  requireAdmin(organizationId);
+  const disclosedOrganizationId = disclose(organizationId);
+  const nextEpoch = (credentialEpochs.lookup(disclosedOrganizationId) + 1) as Uint<16>;
+  credentialEpochs.insert(disclosedOrganizationId, nextEpoch);
+}
+
+export circuit createAnonymousCase(
+  organizationId: Bytes<32>,
+  payloadRef: Opaque<"string">,
+  reportCommitment: Bytes<32>,
+  evidenceCommitment: Bytes<32>,
+  category: Uint<8>,
+  urgency: Uint<8>,
+  submittedAt: Uint<64>
+): Uint<64> {
+  verifyMembership(organizationId);
+  requireCurrentTimestamp(submittedAt);
+  const disclosedOrganizationId = disclose(organizationId);
+  const epoch = reportEpochs.lookup(disclosedOrganizationId);
+  const nullifier = deriveReportNullifier(getUserSecret(), organizationId, epoch);
+  const disclosedNullifier = disclose(nullifier);
+  assert(!usedNullifiers.member(disclosedNullifier), "Reporter has already submitted in this epoch");
+  caseSequence.increment(1);
+  const caseId = caseSequence as Uint<64>;
+  const reporterKey = deriveReporterKey(getUserSecret(), organizationId, caseId);
+  cases.insert(
+    caseId,
+    disclose(CaseRecord {
+      organizationId: organizationId,
+      reporterKey: reporterKey,
+      nullifier: nullifier,
+      payloadRef: payloadRef,
+      reportCommitment: reportCommitment,
+      evidenceCommitment: evidenceCommitment,
+      category: category,
+      urgency: urgency,
+      status: CaseStatus.Submitted,
+      submittedAt: submittedAt,
+      departmentProof: 0,
+      hasDepartmentProof: false,
+      tenureProof: 0
+    })
+  );
+  usedNullifiers.insert(disclosedNullifier);
+  return caseId;
+}
+
+circuit requireReporter(caseId: Uint<64>): CaseRecord {
+  const disclosedCaseId = disclose(caseId);
+  assert(cases.member(disclosedCaseId), "Case not found");
+  const caseRecord = cases.lookup(disclosedCaseId);
+  assert(
+    caseRecord.reporterKey == deriveReporterKey(getUserSecret(), caseRecord.organizationId, caseId),
+    "Only the anonymous reporter may perform this action"
+  );
+  return caseRecord;
+}
+
+circuit submitReporterMessage(
+  caseId: Uint<64>,
+  payloadRef: Opaque<"string">,
+  payloadCommitment: Bytes<32>,
+  sentAt: Uint<64>
+): [] {
+  const caseRecord = requireReporter(caseId);
+  assert(caseRecord.status != CaseStatus.Closed, "Closed cases cannot receive messages");
+  requireCurrentTimestamp(sentAt);
+  messageSequence.increment(1);
+  messages.insert(
+    messageSequence as Uint<64>,
+    disclose(MessageRecord {
+      caseId: caseId,
+      payloadRef: payloadRef,
+      payloadCommitment: payloadCommitment,
+      authorRole: 1,
+      sentAt: sentAt
+    })
+  );
+}
+
+circuit submitInvestigatorMessage(
+  caseId: Uint<64>,
+  payloadRef: Opaque<"string">,
+  payloadCommitment: Bytes<32>,
+  sentAt: Uint<64>
+): [] {
+  const disclosedCaseId = disclose(caseId);
+  assert(cases.member(disclosedCaseId), "Case not found");
+  const caseRecord = cases.lookup(disclosedCaseId);
+  requireInvestigator(caseRecord.organizationId, caseRecord.category);
+  assert(caseRecord.status != CaseStatus.Closed, "Closed cases cannot receive messages");
+  requireCurrentTimestamp(sentAt);
+  messageSequence.increment(1);
+  messages.insert(
+    messageSequence as Uint<64>,
+    disclose(MessageRecord {
+      caseId: caseId,
+      payloadRef: payloadRef,
+      payloadCommitment: payloadCommitment,
+      authorRole: 2,
+      sentAt: sentAt
+    })
+  );
+}
+
+circuit addReporterEvidence(
+  caseId: Uint<64>,
+  payloadRef: Opaque<"string">,
+  commitment: Bytes<32>,
+  submittedAt: Uint<64>
+): [] {
+  const caseRecord = requireReporter(caseId);
+  assert(caseRecord.status != CaseStatus.Closed, "Closed cases cannot receive evidence");
+  requireCurrentTimestamp(submittedAt);
+  evidenceSequence.increment(1);
+  evidence.insert(
+    evidenceSequence as Uint<64>,
+    disclose(EvidenceRecord {
+      caseId: caseId,
+      payloadRef: payloadRef,
+      commitment: commitment,
+      authorRole: 1,
+      submittedAt: submittedAt
+    })
+  );
+}
+
+circuit updateCaseStatus(caseId: Uint<64>, nextStatus: CaseStatus, changedAt: Uint<64>): [] {
+  const disclosedCaseId = disclose(caseId);
+  assert(cases.member(disclosedCaseId), "Case not found");
+  const caseRecord = cases.lookup(disclosedCaseId);
+  requireInvestigator(caseRecord.organizationId, caseRecord.category);
+  requireCurrentTimestamp(changedAt);
+  const expectedStatus = ((caseRecord.status as Uint<8>) + 1) as Uint<8>;
+  assert(nextStatus as Uint<8> == expectedStatus, "Case status must advance exactly one step");
+  statusSequence.increment(1);
+  statusEvents.insert(
+    statusSequence as Uint<64>,
+    disclose(StatusEvent {
+      caseId: caseId,
+      fromStatus: caseRecord.status,
+      toStatus: nextStatus,
+      changedAt: changedAt
+    })
+  );
+  cases.insert(
+    disclosedCaseId,
+    disclose(CaseRecord {
+      organizationId: caseRecord.organizationId,
+      reporterKey: caseRecord.reporterKey,
+      nullifier: caseRecord.nullifier,
+      payloadRef: caseRecord.payloadRef,
+      reportCommitment: caseRecord.reportCommitment,
+      evidenceCommitment: caseRecord.evidenceCommitment,
+      category: caseRecord.category,
+      urgency: caseRecord.urgency,
+      status: nextStatus,
+      submittedAt: caseRecord.submittedAt,
+      departmentProof: caseRecord.departmentProof,
+      hasDepartmentProof: caseRecord.hasDepartmentProof,
+      tenureProof: caseRecord.tenureProof
+    })
+  );
+}
+
+circuit proveDepartment(caseId: Uint<64>, department: Uint<8>): [] {
+  const caseRecord = requireReporter(caseId);
+  const credential = verifyMembership(caseRecord.organizationId);
+  assert(credential.department == department, "Credential does not contain this department");
+  cases.insert(
+    disclose(caseId),
+    disclose(CaseRecord {
+      organizationId: caseRecord.organizationId,
+      reporterKey: caseRecord.reporterKey,
+      nullifier: caseRecord.nullifier,
+      payloadRef: caseRecord.payloadRef,
+      reportCommitment: caseRecord.reportCommitment,
+      evidenceCommitment: caseRecord.evidenceCommitment,
+      category: caseRecord.category,
+      urgency: caseRecord.urgency,
+      status: caseRecord.status,
+      submittedAt: caseRecord.submittedAt,
+      departmentProof: department,
+      hasDepartmentProof: true,
+      tenureProof: caseRecord.tenureProof
+    })
+  );
+}
+
+circuit proveTenure(caseId: Uint<64>, minimumYears: Uint<8>, verifiedAt: Uint<64>): [] {
+  const caseRecord = requireReporter(caseId);
+  const credential = verifyMembership(caseRecord.organizationId);
+  assert(minimumYears > 0 && minimumYears <= 20, "Tenure range is unsupported");
+  assert(minimumYears > caseRecord.tenureProof, "Tenure proof must strictly increase");
+  requireCurrentTimestamp(verifiedAt);
+  const tenureSeconds = (minimumYears * 31557600) as Uint<64>;
+  assert(verifiedAt > tenureSeconds, "Tenure timestamp is invalid");
+  const cutoff = (verifiedAt - tenureSeconds) as Uint<64>;
+  assert(credential.employmentStartedAt <= cutoff, "Credential does not meet the tenure requirement");
+  cases.insert(
+    disclose(caseId),
+    disclose(CaseRecord {
+      organizationId: caseRecord.organizationId,
+      reporterKey: caseRecord.reporterKey,
+      nullifier: caseRecord.nullifier,
+      payloadRef: caseRecord.payloadRef,
+      reportCommitment: caseRecord.reportCommitment,
+      evidenceCommitment: caseRecord.evidenceCommitment,
+      category: caseRecord.category,
+      urgency: caseRecord.urgency,
+      status: caseRecord.status,
+      submittedAt: caseRecord.submittedAt,
+      departmentProof: caseRecord.departmentProof,
+      hasDepartmentProof: caseRecord.hasDepartmentProof,
+      tenureProof: minimumYears
+    })
+  );
+}
+
+export circuit manageOrganization(
+  action: OrganizationAction,
+  organizationId: Bytes<32>,
+  metadataRef: Opaque<"string">,
+  encryptionKeyHash: Bytes<32>,
+  active: Boolean,
+  investigatorKey: Bytes<32>,
+  categoryScope: Uint<8>
+): [] {
+  const publicAction = disclose(action);
+  if (publicAction == OrganizationAction.UpdateMetadata) {
+    updateOrganizationMetadata(organizationId, metadataRef, encryptionKeyHash);
+  } else if (publicAction == OrganizationAction.SetActive) {
+    setOrganizationActive(organizationId, active);
+  } else if (publicAction == OrganizationAction.AddInvestigator) {
+    addInvestigator(organizationId, investigatorKey, categoryScope);
+  } else if (publicAction == OrganizationAction.RemoveInvestigator) {
+    removeInvestigator(organizationId, investigatorKey);
+  } else if (publicAction == OrganizationAction.AdvanceReportingEpoch) {
+    advanceReportingEpoch(organizationId);
+  } else {
+    assert(publicAction == OrganizationAction.AdvanceCredentialEpoch, "Unsupported organization action");
+    advanceCredentialEpoch(organizationId);
+  }
+}
+
+export circuit submitReporterContent(
+  kind: ReporterContentKind,
+  caseId: Uint<64>,
+  payloadRef: Opaque<"string">,
+  commitment: Bytes<32>,
+  submittedAt: Uint<64>
+): [] {
+  const publicKind = disclose(kind);
+  if (publicKind == ReporterContentKind.Message) {
+    submitReporterMessage(caseId, payloadRef, commitment, submittedAt);
+  } else {
+    assert(publicKind == ReporterContentKind.Evidence, "Unsupported reporter content kind");
+    addReporterEvidence(caseId, payloadRef, commitment, submittedAt);
+  }
+}
+
+export circuit submitInvestigatorAction(
+  action: InvestigatorAction,
+  caseId: Uint<64>,
+  payloadRef: Opaque<"string">,
+  commitment: Bytes<32>,
+  nextStatus: CaseStatus,
+  submittedAt: Uint<64>
+): [] {
+  const publicAction = disclose(action);
+  if (publicAction == InvestigatorAction.Message) {
+    submitInvestigatorMessage(caseId, payloadRef, commitment, submittedAt);
+  } else {
+    assert(publicAction == InvestigatorAction.AdvanceStatus, "Unsupported investigator action");
+    updateCaseStatus(caseId, nextStatus, submittedAt);
+  }
+}
+
+export circuit proveFact(
+  kind: DisclosureKind,
+  caseId: Uint<64>,
+  value: Uint<8>,
+  verifiedAt: Uint<64>
+): [] {
+  const publicKind = disclose(kind);
+  if (publicKind == DisclosureKind.Department) {
+    proveDepartment(caseId, value);
+  } else {
+    assert(publicKind == DisclosureKind.Tenure, "Unsupported disclosure kind");
+    proveTenure(caseId, value, verifiedAt);
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "ghostdrop-storage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "node --watch --import tsx src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite/
+.env
+.env.local
+coverage/
+storage/data/
+playwright-report/
+test-results/
+.playwright-cli/
+output/
+.vite-stale-*/
+.package-lock.stale.json
+*.log

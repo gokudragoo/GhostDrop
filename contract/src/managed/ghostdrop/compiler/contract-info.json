@@ -1,0 +1,1105 @@
+{
+  "compiler-version": "0.31.1",
+  "language-version": "0.23.0",
+  "runtime-version": "0.16.0",
+  "circuits": [
+    {
+      "name": "deriveCredentialSubject",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "secret",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "deriveAdminKey",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "secret",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "deriveInvestigatorKey",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "secret",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "deriveReporterKey",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "secret",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "caseId",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "deriveReportNullifier",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "secret",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "epoch",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 65535
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "credentialMessage",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "subject",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "department",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "employmentStartedAt",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "validityEpoch",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 65535
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Vector",
+        "length": 5,
+        "type": {
+          "type-name": "Field"
+        }
+      }
+    },
+    {
+      "name": "schnorrChallenge",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "ann_x",
+          "type": {
+            "type-name": "Field"
+          }
+        },
+        {
+          "name": "ann_y",
+          "type": {
+            "type-name": "Field"
+          }
+        },
+        {
+          "name": "pk_x",
+          "type": {
+            "type-name": "Field"
+          }
+        },
+        {
+          "name": "pk_y",
+          "type": {
+            "type-name": "Field"
+          }
+        },
+        {
+          "name": "msg",
+          "type": {
+            "type-name": "Vector",
+            "length": 5,
+            "type": {
+              "type-name": "Field"
+            }
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Field"
+      }
+    },
+    {
+      "name": "registerOrganization",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "type-name": "Opaque",
+            "tsType": "string"
+          }
+        },
+        {
+          "name": "metadataRef",
+          "type": {
+            "type-name": "Opaque",
+            "tsType": "string"
+          }
+        },
+        {
+          "name": "encryptionKeyHash",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "issuerKey",
+          "type": {
+            "type-name": "Alias",
+            "name": "JubjubPoint",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "JubjubPoint"
+            }
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "createAnonymousCase",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "payloadRef",
+          "type": {
+            "type-name": "Opaque",
+            "tsType": "string"
+          }
+        },
+        {
+          "name": "reportCommitment",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "evidenceCommitment",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "category",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "urgency",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "submittedAt",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    },
+    {
+      "name": "manageOrganization",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "action",
+          "type": {
+            "type-name": "Enum",
+            "name": "OrganizationAction",
+            "elements": [
+              "UpdateMetadata",
+              "SetActive",
+              "AddInvestigator",
+              "RemoveInvestigator",
+              "AdvanceReportingEpoch",
+              "AdvanceCredentialEpoch"
+            ]
+          }
+        },
+        {
+          "name": "organizationId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "metadataRef",
+          "type": {
+            "type-name": "Opaque",
+            "tsType": "string"
+          }
+        },
+        {
+          "name": "encryptionKeyHash",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "active",
+          "type": {
+            "type-name": "Boolean"
+          }
+        },
+        {
+          "name": "investigatorKey",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "categoryScope",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "submitReporterContent",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "kind",
+          "type": {
+            "type-name": "Enum",
+            "name": "ReporterContentKind",
+            "elements": [
+              "Message",
+              "Evidence"
+            ]
+          }
+        },
+        {
+          "name": "caseId",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "payloadRef",
+          "type": {
+            "type-name": "Opaque",
+            "tsType": "string"
+          }
+        },
+        {
+          "name": "commitment",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "submittedAt",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "submitInvestigatorAction",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "action",
+          "type": {
+            "type-name": "Enum",
+            "name": "InvestigatorAction",
+            "elements": [
+              "Message",
+              "AdvanceStatus"
+            ]
+          }
+        },
+        {
+          "name": "caseId",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "payloadRef",
+          "type": {
+            "type-name": "Opaque",
+            "tsType": "string"
+          }
+        },
+        {
+          "name": "commitment",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "nextStatus",
+          "type": {
+            "type-name": "Enum",
+            "name": "CaseStatus",
+            "elements": [
+              "Submitted",
+              "Acknowledged",
+              "UnderInvestigation",
+              "ActionRequired",
+              "Resolved",
+              "Closed"
+            ]
+          }
+        },
+        {
+          "name": "submittedAt",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "proveFact",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "kind",
+          "type": {
+            "type-name": "Enum",
+            "name": "DisclosureKind",
+            "elements": [
+              "Department",
+              "Tenure"
+            ]
+          }
+        },
+        {
+          "name": "caseId",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "value",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "verifiedAt",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "getSchnorrReduction",
+      "arguments": [
+        {
+          "name": "challengeHash",
+          "type": {
+            "type-name": "Field"
+          }
+        }
+      ],
+      "result type": {
+        "type-name": "Tuple",
+        "types": [
+          {
+            "type-name": "Uint",
+            "maxval": 127
+          },
+          {
+            "type-name": "Uint",
+            "maxval": 452312848583266388373324160190187140051835877600158453279131187530910662655
+          }
+        ]
+      }
+    },
+    {
+      "name": "getMembershipWitness",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Tuple",
+        "types": [
+          {
+            "type-name": "Struct",
+            "name": "MembershipCredential",
+            "elements": [
+              {
+                "name": "organizationId",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "subject",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "department",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 255
+                }
+              },
+              {
+                "name": "employmentStartedAt",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 18446744073709551615
+                }
+              },
+              {
+                "name": "validityEpoch",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 65535
+                }
+              }
+            ]
+          },
+          {
+            "type-name": "Struct",
+            "name": "SchnorrSignature",
+            "elements": [
+              {
+                "name": "announcement",
+                "type": {
+                  "type-name": "Alias",
+                  "name": "JubjubPoint",
+                  "type": {
+                    "type-name": "Opaque",
+                    "tsType": "JubjubPoint"
+                  }
+                }
+              },
+              {
+                "name": "response",
+                "type": {
+                  "type-name": "Field"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "getUserSecret",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    }
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "organizations",
+      "index": 0,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Struct",
+        "name": "Organization",
+        "elements": [
+          {
+            "name": "name",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "string"
+            }
+          },
+          {
+            "name": "metadataRef",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "string"
+            }
+          },
+          {
+            "name": "encryptionKeyHash",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "adminKey",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "issuerKey",
+            "type": {
+              "type-name": "Alias",
+              "name": "JubjubPoint",
+              "type": {
+                "type-name": "Opaque",
+                "tsType": "JubjubPoint"
+              }
+            }
+          },
+          {
+            "name": "active",
+            "type": {
+              "type-name": "Boolean"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "reportEpochs",
+      "index": 1,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Uint",
+        "maxval": 65535
+      }
+    },
+    {
+      "name": "credentialEpochs",
+      "index": 2,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Uint",
+        "maxval": 65535
+      }
+    },
+    {
+      "name": "investigatorPermissions",
+      "index": 3,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Map",
+        "key": {
+          "type-name": "Bytes",
+          "length": 32
+        },
+        "value": {
+          "type-name": "Uint",
+          "maxval": 255
+        }
+      }
+    },
+    {
+      "name": "usedNullifiers",
+      "index": 4,
+      "exported": true,
+      "storage": "Set",
+      "type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "cases",
+      "index": 5,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      },
+      "value": {
+        "type-name": "Struct",
+        "name": "CaseRecord",
+        "elements": [
+          {
+            "name": "organizationId",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "reporterKey",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "nullifier",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "payloadRef",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "string"
+            }
+          },
+          {
+            "name": "reportCommitment",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "evidenceCommitment",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "category",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          },
+          {
+            "name": "urgency",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "type-name": "Enum",
+              "name": "CaseStatus",
+              "elements": [
+                "Submitted",
+                "Acknowledged",
+                "UnderInvestigation",
+                "ActionRequired",
+                "Resolved",
+                "Closed"
+              ]
+            }
+          },
+          {
+            "name": "submittedAt",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "departmentProof",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          },
+          {
+            "name": "hasDepartmentProof",
+            "type": {
+              "type-name": "Boolean"
+            }
+          },
+          {
+            "name": "tenureProof",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "messages",
+      "index": 6,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      },
+      "value": {
+        "type-name": "Struct",
+        "name": "MessageRecord",
+        "elements": [
+          {
+            "name": "caseId",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "payloadRef",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "string"
+            }
+          },
+          {
+            "name": "payloadCommitment",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "authorRole",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          },
+          {
+            "name": "sentAt",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "evidence",
+      "index": 7,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      },
+      "value": {
+        "type-name": "Struct",
+        "name": "EvidenceRecord",
+        "elements": [
+          {
+            "name": "caseId",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "payloadRef",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "string"
+            }
+          },
+          {
+            "name": "commitment",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          },
+          {
+            "name": "authorRole",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          },
+          {
+            "name": "submittedAt",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "statusEvents",
+      "index": 8,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      },
+      "value": {
+        "type-name": "Struct",
+        "name": "StatusEvent",
+        "elements": [
+          {
+            "name": "caseId",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "fromStatus",
+            "type": {
+              "type-name": "Enum",
+              "name": "CaseStatus",
+              "elements": [
+                "Submitted",
+                "Acknowledged",
+                "UnderInvestigation",
+                "ActionRequired",
+                "Resolved",
+                "Closed"
+              ]
+            }
+          },
+          {
+            "name": "toStatus",
+            "type": {
+              "type-name": "Enum",
+              "name": "CaseStatus",
+              "elements": [
+                "Submitted",
+                "Acknowledged",
+                "UnderInvestigation",
+                "ActionRequired",
+                "Resolved",
+                "Closed"
+              ]
+            }
+          },
+          {
+            "name": "changedAt",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "caseSequence",
+      "index": 9,
+      "exported": true,
+      "storage": "Counter"
+    },
+    {
+      "name": "messageSequence",
+      "index": 10,
+      "exported": true,
+      "storage": "Counter"
+    },
+    {
+      "name": "evidenceSequence",
+      "index": 11,
+      "exported": true,
+      "storage": "Counter"
+    },
+    {
+      "name": "statusSequence",
+      "index": 12,
+      "exported": true,
+      "storage": "Counter"
+    }
+  ]
+}
