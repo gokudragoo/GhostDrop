@@ -12,3 +12,5 @@ output/
 .vite-stale-*/
 .package-lock.stale.json
 *.log
+
+.vercel
