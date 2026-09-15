@@ -1,11 +1,17 @@
 # GhostDrop
 
+> **Live demo (Midnight Preprod): https://ghostdrop-theta.vercel.app**
+>
+> Connected contract: `4ff1ff67e2400cff88c8f8e31acf12ce9332ba7afe4342788d92217551710461`
+> (`deployments/preprod.json`). Open the link in Chrome with a Midnight
+> Lace-compatible wallet on `preprod`, join the contract above, and report.
+
 GhostDrop is a privacy-first reporting DApp for Midnight. A reporter proves possession of an organization-issued membership credential without publishing their identity, submits an encrypted report, receives a case pseudonym, and can continue an encrypted conversation with authorized investigators. The Compact contract records verifiable commitments, access policy, report epochs, selective disclosures, and forward-only case status.
 
 The repository is an npm workspace:
 
 - `contract/` — Compact contract, generated bindings and simulator tests.
-- `api/` — contract client, credential signing, encryption and storage clients.
+- `sdk/` — contract client, credential signing, encryption and storage clients.
 - `web/` — React/Vite browser DApp and bundled ZK artifacts.
 - `storage/` — minimal content-addressed blob service for opaque payloads.
 - `proof-server/` — local Midnight proof-server configuration.
@@ -178,3 +184,86 @@ Terminate TLS at a reverse proxy or platform load balancer, attach durable stora
 | `npm run contract:compile` | Regenerate Compact bindings and ZK assets. |
 | `npm run contract:test` | Run Compact simulator tests. |
 | `npm run deployment:record -- <address> [tx-id]` | Record a completed Preprod deployment and set the default address. |
+
+## What GhostDrop can do today
+
+Live on the Vercel link above (Midnight `preprod` + the contract address at the
+top of this file):
+
+- **Anonymous-but-verified reporting** — a reporter derives a one-way subject
+  from a local secret, gets a signed membership credential (`gdc2_…`) from the
+  organization desk, and submits a report through a zero-knowledge membership
+  proof. The organization learns "valid member", never who.
+- **End-to-end encrypted payloads** — title, description and evidence are
+  encrypted in the browser (category-scoped organization keys) before upload.
+  The ledger carries only opaque refs, SHA-256 commitments, category, urgency,
+  timestamps and status.
+- **Investigator workflow** — admins authorize investigator commitments,
+  transfer access packages (`gda1_…`) out of band, and investigators decrypt
+  only cases in their scope (all categories or one category).
+- **Two-way encrypted correspondence** — reporter and investigator exchange
+  encrypted messages per case; each side decrypts only what is addressed to it.
+- **Encrypted evidence attachments** — initial evidence (up to 2 MB) plus
+  follow-up reporter evidence, each commitment-checked against the chain.
+- **Selective disclosure** — reporters can prove department or 2+ year tenure
+  on a case without revealing anything else.
+- **Forward-only case lifecycle** — Submitted → Acknowledged → Under
+  investigation → Action required → Resolved → Closed, with on-chain history.
+- **Receipts and auditability** — finalized transaction receipts are docked in
+  the UI; commitments and transactions are checkable on the Preprod explorer
+  without exposing plaintext.
+
+## Current limitations (read before the demo)
+
+- The Vercel build embeds `VITE_STORAGE_URL=http://127.0.0.1:8787` from
+  `web/.env.preprod`. For a true two-machine flow, deploy `storage/` to one
+  shared durable HTTPS origin and rebuild the frontend with that URL (see
+  [DEPLOYMENT.md](./DEPLOYMENT.md) §2). Until then, run
+  `npm run dev:storage` locally alongside the hosted UI.
+- Browser private state and recovery material live in localStorage — treat the
+  browser profile as sensitive; this is not hardened production custody.
+- Category encryption keys are shared out of band; rotation protects future
+  cases only, and secure transfer/custody of access packages is operational.
+- A wallet-managed HTTPS proof service works but adds its operator to the
+  trust boundary; local proof server (`127.0.0.1:6300`) is the private option.
+- Public case metadata (category, urgency, timestamps) can itself identify
+  someone in a small organization — choose it carefully.
+
+## Roadmap — what we will improve and add
+
+**UI/UX improvements**
+
+- Guided first-run wizard (connect → credential → report → inbox) replacing
+  the current tab-hopping flow, with progress, contextual help and empty states.
+- Mobile-responsive layout and accessibility pass (keyboard flow, focus order,
+  ARIA roles, contrast, reduced-motion support).
+- Case inbox upgrades: search/filter/sort, unread badges, urgency and status
+  filters, paginated history for large organizations.
+- Richer feedback: per-step transaction progress (proving → submitting →
+  finalizing), retry affordances, and plain-language error recovery instead of
+  raw chain errors.
+- Visual polish: design-system tokens, dark/light themes, loading skeletons,
+  and consistent iconography across reporter, investigator and admin views.
+
+**Platform and trust hardening**
+
+- Hosted shared storage as a first-class deployment (durable HTTPS origin with
+  rate limiting, quotas, backups, monitoring), wired into the Vercel build.
+- Move secrets and keys out of localStorage into safer custody (e.g. encrypted
+  export/import, optional hardware-wallet-backed subjects).
+- Stronger anti-spam/anti-abuse: rate-limited nullifiers and organization-level
+  reporting windows without weakening anonymity.
+- Automated end-to-end checks against Preprod on every release (wallet,
+  indexer, storage, proof server).
+
+**New features planned**
+
+- Multi-evidence bundles and larger encrypted attachments with chunked upload.
+- Organization templates and multi-organization dashboards for admins.
+- Time-boxed investigator grants (auto-expiring access scopes).
+- Anonymous satisfaction/closure ratings so reporters can confirm resolution.
+- Public transparency page: aggregate case statistics with zero identifying
+  data (counts by category/status only).
+- Notifications: opt-in, privacy-preserving case-update alerts (no plaintext
+  ever leaves the encrypted channel).
+- i18n: multi-language UI starting with the reporter flow.

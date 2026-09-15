@@ -8,7 +8,7 @@
   },
   "workspaces": [
     "contract",
-    "api",
+    "sdk",
     "web",
     "storage"
   ],
