@@ -5,6 +5,9 @@ import wasm from 'vite-plugin-wasm';
 
 export default defineConfig({
   cacheDir: './.vite',
+  define: {
+    'process.env': {},
+  },
   plugins: [
     react(),
     wasm(),
