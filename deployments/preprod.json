@@ -1,0 +1,11 @@
+{
+  "network": "preprod",
+  "contractAddress": "4ff1ff67e2400cff88c8f8e31acf12ce9332ba7afe4342788d92217551710461",
+  "deploymentTransactionId": null,
+  "recordedAt": "2026-09-15T20:08:29.603Z",
+  "compilerVersion": "0.31.1",
+  "languageVersion": "0.23.0",
+  "runtimeVersion": "0.16.0",
+  "indexerUrl": "https://indexer.preprod.midnight.network/api/v4/graphql",
+  "explorerUrl": "https://preprod.midnightexplorer.com/"
+}
