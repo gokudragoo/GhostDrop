@@ -8,3 +8,4 @@ services:
     ports:
       - "127.0.0.1:6300:6300"
     restart: unless-stopped
+
