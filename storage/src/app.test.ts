@@ -6,9 +6,7 @@ import { createStorageServer } from './app.js';
 
 const servers: ReturnType<typeof createStorageServer>[] = [];
 
-afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve) => server.close(() => resolve()))));
-});
+ 
 
 describe('ciphertext content-addressed storage', () => {
   it('stores encrypted bytes by SHA-256 and returns them unchanged', async () => {
