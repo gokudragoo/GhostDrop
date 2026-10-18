@@ -6,7 +6,7 @@ export const fromUtf8 = (value: BufferSource): string => decoder.decode(value);
 export const ownedBuffer = (value: Uint8Array): ArrayBuffer => Uint8Array.from(value).buffer;
 
 export const toHex = (bytes: Uint8Array): string =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  Array.from(bytes, (byte) => byte.toString(16). (2, '0')).join('');
 
 export const fromHex = (hex: string): Uint8Array => {
   if (!/^[0-9a-f]*$/i.test(hex) || hex.length % 2 !== 0) {
